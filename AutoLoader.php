@@ -34,7 +34,15 @@ class AutoLoader
 
     protected function replaceNameSpaces($className)
     {
-        return $className;
+        $aliases = array_keys($this->namespaces);
+
+        foreach($aliases as $alias){
+            if(strpos($className, $alias) === 0){
+                return str_replace($alias, $this->namespaces[$alias], $className);
+            }
+        }
+
+        return '.'.$className;
     }
 
     protected function tryResolveLikeSpecificPath($className)
