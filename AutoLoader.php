@@ -36,19 +36,35 @@ class AutoLoader
     {
         $aliases = array_keys($this->namespaces);
 
-        foreach($aliases as $alias){
-            if(strpos($className, $alias) === 0){
+        foreach ($aliases as $alias) {
+            if (strpos($className, $alias) === 0) {
                 return str_replace($alias, $this->namespaces[$alias], $className);
             }
         }
 
-        return '.'.$className;
+        if (substr($className, 0, 1) == '\\') {
+            return '.' . $className;
+        }
+
+        return './' . $className;
+    }
+
+    protected function normalizePath($path)
+    {
+        return str_replace('\\', '/', $path);
+    }
+
+    protected function loadFile($fileName)
+    {
+        $fileName = $this->normalizePath($fileName);
+
+        return $this->loader->loadFile($fileName);
     }
 
     protected function tryResolveLikeSpecificPath($className)
     {
         if (array_key_exists($className, $this->paths)) {
-            return $this->loader->loadFile($this->paths[$className]);
+            return $this->loadFile($this->paths[$className]);
         }
 
         return false;
@@ -56,8 +72,9 @@ class AutoLoader
 
     protected function resolveRegular($className)
     {
-        $path = $this->replaceNameSpaces($className);
-        return $this->loader->loadFile($path);
+        $path = $this->replaceNameSpaces($className).'.php';
+
+        return $this->loadFile($path);
     }
 
     public function loadClass($className)
