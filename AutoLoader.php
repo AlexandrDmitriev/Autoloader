@@ -5,12 +5,12 @@ namespace AutoLoader;
 class AutoLoader
 {
     private $loader;
-    private $namespaces;
+    private $projectsNamespaces;
     private $paths = array();
 
-    public function __construct(array $namespaces, Loader $loader = null)
+    public function __construct(array $projectsNamespaces, Loader $loader = null)
     {
-        $this->namespaces = $namespaces;
+        $this->projectsNamespaces = $projectsNamespaces;
 
         if ($loader === null) {
             include 'Loader.php';
@@ -34,11 +34,11 @@ class AutoLoader
 
     protected function replaceNameSpaces($className)
     {
-        $aliases = array_keys($this->namespaces);
+        $aliases = array_keys($this->projectsNamespaces);
 
         foreach ($aliases as $alias) {
             if (strpos($className, $alias) === 0) {
-                return str_replace($alias, $this->namespaces[$alias], $className);
+                return $this->projectsNamespaces[$alias].substr($className, strlen($alias));
             }
         }
 
