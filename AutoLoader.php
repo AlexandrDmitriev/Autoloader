@@ -2,18 +2,16 @@
 
 namespace AutoLoader;
 
-class AutoLoader
+class AutoLoader implements \CoreInterfaces\IAutoLoader
 {
-    private $loader;
-    private $projectsNamespaces;
-    private $paths = array();
-    private $aliases = array();
-    private $appRoot;
+    protected $loader;
+    protected $projectsNamespaces;
+    protected $paths = array();
+    protected $aliases = array();
 
-    public function __construct($appRoot, array $projectsNamespaces, Loader $loader = null)
+    public function __construct(array $projectsNamespaces, Loader $loader = null)
     {
         $this->projectsNamespaces = $projectsNamespaces;
-        $this->appRoot = $appRoot;
 
         if ($loader === null) {
             include 'Loader.php';
@@ -34,9 +32,9 @@ class AutoLoader
         unset($this->paths[$path]);
     }
 
-    public function addAliases(array $aliases)
+    public function addAliases(array $alias)
     {
-        $this->aliases = array_merge($this->aliases, $aliases);
+        $this->aliases = array_merge($this->aliases, $alias);
     }
 
     public function removeAliases($alias)
@@ -44,7 +42,7 @@ class AutoLoader
         unset($this->paths[$alias]);
     }
 
-    private function register()
+    protected function register()
     {
         spl_autoload_register(array($this, 'loadClass'));
     }
@@ -52,7 +50,7 @@ class AutoLoader
     protected function placeHoldersReplace($path)
     {
         $path = preg_replace_callback(
-            '/{{([^}]+)}}/',
+            '/{([^}]+)}/',
             function ($matches) {
                 if (empty($matches[1])) {
                     return $matches[0];
@@ -78,12 +76,6 @@ class AutoLoader
                 return $this->projectsNamespaces[$alias].substr($className, strlen($alias));
             }
         }
-
-        if (substr($className, 0, 1) == '\\') {
-            return $this->appRoot . $className;
-        }
-
-        return sprintf('%s/%s', $this->appRoot, $className);
     }
 
     protected function normalizePath($path)
