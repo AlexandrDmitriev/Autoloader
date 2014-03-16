@@ -2,7 +2,9 @@
 
 namespace AutoLoader;
 
-class AutoLoader implements \CoreInterfaces\IAutoLoader
+use CoreInterfaces\IAutoLoader;
+
+class AutoLoader implements IAutoLoader
 {
     protected $loader;
     protected $projectsNamespaces;
@@ -42,6 +44,23 @@ class AutoLoader implements \CoreInterfaces\IAutoLoader
         unset($this->paths[$alias]);
     }
 
+    public function loadClass($className)
+    {
+        if (array_key_exists($className, $this->paths)) {
+            return $this->loadFile($this->paths[$className]);
+        }
+
+        foreach ($this->projectsNamespaces as $alias => $path) {
+            if (strpos($className, $alias) === 0) {
+                return $this->loadFile(
+                    sprintf('%s%s.php', $path, substr($className, strlen($alias)))
+                );
+            }
+        }
+
+        return false;
+    }
+
     protected function register()
     {
         spl_autoload_register(array($this, 'loadClass'));
@@ -55,68 +74,24 @@ class AutoLoader implements \CoreInterfaces\IAutoLoader
                 if (empty($matches[1])) {
                     return $matches[0];
                 }
-                switch ($matches[1]) {
-                    case 'root':
-                        return $this->appRoot;
-                    default:
-                        return isset($this->aliases[$matches[1]]) ? $this->aliases[$matches[1]] : $matches[0];
-                }
+                return isset($this->aliases[$matches[1]]) ? $this->aliases[$matches[1]] : $matches[0];
             },
             $path
         );
         return $path;
     }
 
-    protected function replaceNameSpaces($className)
-    {
-        $aliases = array_keys($this->projectsNamespaces);
-
-        foreach ($aliases as $alias) {
-            if (strpos($className, $alias) === 0) {
-                return $this->projectsNamespaces[$alias].substr($className, strlen($alias));
-            }
-        }
-    }
-
-    protected function normalizePath($path)
-    {
-        if (DIRECTORY_SEPARATOR == '\\') {
-            return str_replace('/', DIRECTORY_SEPARATOR, $path);
-        }
-
-        return str_replace('\\', DIRECTORY_SEPARATOR, $path);
-    }
-
     protected function loadFile($fileName)
     {
         $fileName = $this->placeHoldersReplace($fileName);
 
-        $fileName = $this->normalizePath($fileName);
+        if (DIRECTORY_SEPARATOR == '\\') {
+            $fileName = str_replace('/', DIRECTORY_SEPARATOR, $fileName);
+        }
+
+        $fileName = str_replace('\\', DIRECTORY_SEPARATOR, $fileName);
 
         return $this->loader->loadFile($fileName);
-    }
-
-    protected function tryResolveLikeSpecificPath($className)
-    {
-        if (array_key_exists($className, $this->paths)) {
-            return $this->loadFile($this->paths[$className]);
-        }
-
-        return false;
-    }
-
-    protected function resolveRegular($className)
-    {
-        $path = $this->replaceNameSpaces($className).'.php';
-
-        return $this->loadFile($path);
-    }
-
-    public function loadClass($className)
-    {
-        if (!$this->tryResolveLikeSpecificPath($className)) {
-            $this->resolveRegular($className);
-        }
     }
 
     public function __get($name)
